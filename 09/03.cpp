@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <unordered_set>
 
 using namespace std;
 
@@ -31,11 +32,17 @@ struct Horizontal
 };
 
 long long area = 0;
-map<pair<int, int>, char> border;
+unordered_set<long long> border;
 vector<Vertical> vertical;
 vector<Horizontal> horizontal;
 
-void outline(Point &first, Point &second, map<pair<int, int>, char> &border)
+inline long long key(int x, int y)
+{
+    return (static_cast<long long>(x) << 32) ^
+           static_cast<unsigned int>(y);
+}
+
+void outline(Point &first, Point &second, unordered_set<long long> &border)
 {
     // outline along y axis
     if (first.x == second.x)
@@ -48,7 +55,7 @@ void outline(Point &first, Point &second, map<pair<int, int>, char> &border)
             vertical.push_back({start, end, first.x, "DOWN"});
             for (int y = first.y + 1; y < second.y; y++)
             {
-                border[{first.x + 1, y}] = '*';
+                border.insert(key(first.x + 1, y));
             }
         }
         // bottom -> top, outside to the left (x-1)
@@ -57,7 +64,7 @@ void outline(Point &first, Point &second, map<pair<int, int>, char> &border)
             vertical.push_back({start, end, first.x, "UP"});
             for (int y = first.y - 1; y > second.y; y--)
             {
-                border[{first.x - 1, y}] = '*';
+                border.insert(key(first.x - 1, y));
             }
         }
     }
@@ -72,7 +79,7 @@ void outline(Point &first, Point &second, map<pair<int, int>, char> &border)
             horizontal.push_back({start, end, first.y, "RIGHT"});
             for (int x = first.x + 1; x < second.x; x++)
             {
-                border[{x, first.y - 1}] = '*';
+                border.insert(key(x, first.y - 1));
             }
         }
         // right -> left, outside is (y+1)
@@ -81,13 +88,13 @@ void outline(Point &first, Point &second, map<pair<int, int>, char> &border)
             horizontal.push_back({start, end, first.y, "LEFT"});
             for (int x = first.x - 1; x > second.x; x--)
             {
-                border[{x, first.y + 1}] = '*';
+                border.insert(key(x, first.y + 1));
             }
         }
     }
 }
 
-bool isValid(Point &first, Point &second, map<pair<int, int>, char> &border)
+bool isValid(Point &first, Point &second, unordered_set<long long> &border)
 {
     Point topleft;
     Point topright;
@@ -108,7 +115,7 @@ bool isValid(Point &first, Point &second, map<pair<int, int>, char> &border)
     // traverse top left -> top right
     for (int x = topleft.x; x <= topright.x; x++)
     {
-        if (border[{x, topleft.y}] == '*')
+        if (border.count(key(x, topleft.y)))
         {
             // printf("[%d, %d] [%d, %d] top border invalid at [%d, %d]\n", first.x, first.y, second.x, second.y, x, topleft.y);
             return false;
@@ -117,7 +124,7 @@ bool isValid(Point &first, Point &second, map<pair<int, int>, char> &border)
     // traverse top right -> bottom right
     for (int y = topright.y; y <= bottomright.y; y++)
     {
-        if (border[{topright.x, y}] == '*')
+        if (border.count(key(topright.x, y)))
         {
             // printf("[%d, %d] [%d, %d] right border invalid at [%d, %d]\n", first.x, first.y, second.x, second.y, topright.x, y);
             return false;
@@ -126,7 +133,7 @@ bool isValid(Point &first, Point &second, map<pair<int, int>, char> &border)
     // traverse bottom right -> bottom left
     for (int x = bottomright.x; x >= bottomleft.x; x--)
     {
-        if (border[{x, bottomright.y}] == '*')
+        if (border.count(key(x, bottomright.y)))
         {
             // printf("[%d, %d] [%d, %d] bottom border invalid at [%d, %d]\n", first.x, first.y, second.x, second.y, x, bottomright.y);
             return false;
@@ -135,7 +142,9 @@ bool isValid(Point &first, Point &second, map<pair<int, int>, char> &border)
     // traverse bottom left -> top left
     for (int y = bottomleft.y; y >= topleft.y; y--)
     {
-        if (border[{bottomleft.x, y}] == '*')
+        // if (border[{bottomleft.x, y}] == '*')
+        if (border.count(key(bottomleft.x, y)))
+
         {
             // printf("[%d, %d] [%d, %d] left border invalid at [%d, %d]\n", first.x, first.y, second.x, second.y, bottomleft.x, y);
             return false;
@@ -184,13 +193,13 @@ int main()
     {
         if (e.direction == "UP")
         {
-            border[{e.x - 1, e.start}] = '*';
-            border[{e.x - 1, e.end}] = '*';
+            border.insert(key(e.x - 1, e.start));
+            border.insert(key(e.x - 1, e.end));
         }
         else
         {
-            border[{e.x + 1, e.start}] = '*';
-            border[{e.x + 1, e.end}] = '*';
+            border.insert(key(e.x + 1, e.start));
+            border.insert(key(e.x + 1, e.end));
         }
     }
 
@@ -199,13 +208,13 @@ int main()
     {
         if (e.direction == "RIGHT")
         {
-            border[{e.start, e.y - 1}] = '*';
-            border[{e.end, e.y - 1}] = '*';
+            border.insert(key(e.start, e.y - 1));
+            border.insert(key(e.end, e.y - 1));
         }
         else
         {
-            border[{e.start, e.y + 1}] = '*';
-            border[{e.start, e.y + 1}] = '*';
+            border.insert(key(e.start, e.y + 1));
+            border.insert(key(e.end, e.y + 1));
         }
     }
 
@@ -214,14 +223,14 @@ int main()
     {
         for (int x = h.start; x <= h.end; x++)
         {
-            border.erase({x, h.y});
+            border.erase(key(x, h.y));
         }
     }
     for (auto &v : vertical)
     {
         for (int y = v.start; y <= v.end; y++)
         {
-            border.erase({v.x, y});
+            border.erase(key(v.x, y));
         }
     }
 
@@ -236,7 +245,6 @@ int main()
             printf("\rChecking rectangle %d", count);
             if (isValid(a, b, border))
             {
-                // printf("Valid rectangle found between: [%d, %d] [%d, %d]\n", a.x, a.y, b.x, b.y);
                 area = max(area, getArea(a, b));
             }
             count++;
